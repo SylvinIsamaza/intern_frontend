@@ -20,14 +20,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import ProtectedRoutes from './routes/ProtectedRoute';
 import { store } from './redux/store';
 import { loadUser } from './redux/action/user';
+import { loadTransaction } from './redux/action/transaction';
 function App() {
-
+  const location = useLocation();
+  const { user, isAuthenticated } = useSelector((state) => state.user);
+  const {transactions}=useSelector((state)=>state.transaction)
   useEffect(() => {
     store.dispatch(loadUser())
+    store.dispatch(loadTransaction())
+  
    }
-    , [])
-  const { user,isAuthenticated } = useSelector((state) => state.user);
-  const location = useLocation(); // Get the current location
+    , [location])
+  // Get the current location
 
   // Check if the current path is '/login' or '/register'
   const isAuthenticationRoute = location.pathname === '/login'||location.pathname === '/register';
@@ -49,7 +53,7 @@ function App() {
               <div className="py-[80px] overflow-auto">
               <Routes>
                   <Route path='/' element={<ProtectedRoutes isAuthenticated={isAuthenticated}><Dashboard/></ProtectedRoutes>} />
-                  <Route path='/exchange' Component={Exchange} />
+                  <Route path='/exchange'element={<ProtectedRoutes isAuthenticated={isAuthenticated}><Exchange transactions={transactions}/></ProtectedRoutes>} />
                   <Route path='/home' Component={Home} />
                   <Route path='/inventory' Component={Inventory} />
                   <Route path='/community' Component={Community} />

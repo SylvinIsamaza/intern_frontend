@@ -36,20 +36,5 @@ export const {
   loadUserStart,
   loadUserFailure,
   loadUserSuccess,
-  updateUserFailure,
-  updateUserStart,
-  updateUserSuccess,
-  updateAvatarStart,
-  updateAvatarFailure,
-  updateAvatarSuccess,
-  updateAddressFailure,
-  updateAddressStart,
-  updateAddressSuccess,
-  deleteAddressStart,
-  deleteAddressSuccess,
-  deleteAddressfailure,
-  changePasswordStart,
-  changePasswordSuccess,
-  changePasswordfailure
 } = userSlice.actions;
 export default userSlice.reducer;

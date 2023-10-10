@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Card from "../Card/Card";
 import newBuilding from "../../assets/New.svg";
 import activeBuilding from "../../assets/active.svg";
@@ -8,22 +8,25 @@ import canceledBuilding from "../../assets/canceled.svg";
 import Search from "../search/Search";
 import { styled } from '@mui/material/styles';
 
-import { AiOutlineClose } from "react-icons/ai";
+import { AiOutlineClose, AiOutlineDelete, AiOutlineMenu } from "react-icons/ai";
 import { DataGrid, gridPageCountSelector, gridPageSelector, useGridApiContext, useGridSelector } from "@mui/x-data-grid";
 import { Box, Pagination, PaginationItem, TablePagination, Typography } from "@mui/material";
+import { useSelector } from "react-redux";
+import { store } from "../../redux/store";
+import { loadTransaction } from "../../redux/action/transaction";
 function CustomPagination() {
 
   const apiRef = useGridApiContext();
   const page = useGridSelector(apiRef, gridPageSelector);
   const pageCount = useGridSelector(apiRef, gridPageCountSelector);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    setRowsPerPage(parseInt(event.target.value, 5));
     setPage(0);
   };
   return (
@@ -42,11 +45,18 @@ function CustomPagination() {
         // @ts-expect-error
         renderItem={(props2) => <PaginationItem {...props2} disableRipple />}
         onChange={(event, value) => apiRef.current.setPage(value - 1)}
+        sx={{
+          flex: 1,
+          justifyContent: "center",
+          display: "flex",
+          backgroundColor:""
+        }}
       />
       <Box sx={{
         display: "flex",
         justifyContent: "center",
-        alignItems:"center"
+        alignItems: "center",
+        
       }}>
 
       <Typography>
@@ -58,8 +68,10 @@ function CustomPagination() {
       page={page}
       onPageChange={handleChangePage}
       rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={-1}
-
+      rowsPerPageOptions={-1}
+          sx={{
+         marginRight:"20px"
+       }}
     />
       </Box>
 
@@ -67,7 +79,31 @@ function CustomPagination() {
   );
 }
 
-const Exchange = () => {
+const Exchange = ({transactions}) => {
+
+  const [formData, setFormData] = useState({
+    balance: "",
+    openDate: "",
+    closeDate: "",
+  
+  });
+  const [status,setStaus]=useState("")
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+   
+    console.log("Form Data:", formData);
+  
+  };
+
+
   const PAGE_SIZE = 5;
   const [paginationModel, setPaginationModel] = React.useState({
     pageSize: PAGE_SIZE,
@@ -75,11 +111,11 @@ const Exchange = () => {
   });
   const options = ["New", "Active", "Closed", "Canceled"];
   const columns = [
-    { field: "ExchangeNumber", headerName: "EXCHANGE NUMBER",flex:1},
+    { field: "transactionNumber", headerName: "EXCHANGE NUMBER",flex:1},
     { field: "exchanger", headerName: "EXCHANGER",flex:1 },
-    { field: "lastName", headerName: "OPEN DATE", flex:1},
+    { field: "openDate", headerName: "OPEN DATE", flex:1},
     { field: "closeDate", headerName: "CLOSE DATE", flex:1},
-    { field: "lmd", headerName: "LAST MODIFIED DATE" },
+    { field: "lmd", headerName: "LAST MODIFIED DATE", flex:1 },
     { field: 'lastName', headerName: 'ACCOUNT BALANCE', flex:1 },
     {
       field: "status",
@@ -93,23 +129,24 @@ const Exchange = () => {
       description: "This column has a value getter and is not sortable.",
       sortable: false,
       width: 160,
-      valueGetter: (params) =>
-        `${params.row.exchanger || ""} ${params.row.lastName || ""}`,
+      renderCell: (params) => (
+        <div className="flex gap-3 items-center">
+     <Icon icon="basil:edit-outline" className="w-8 h-8 cursor-pointer"
+            onClick={() => handleDelete(params.row.id)} // Replace with your delete logic
+          ></Icon>
+         <Icon icon="gg:more-r" 
+           
+            className="w-8 h-8 cursor-pointer"
+
+            onClick={() => handleMoreOptions(params.row.id)} // Replace with your more options logic
+          ></Icon>
+        </div>
+      ),
     },
   ];
-  const rows = [
-    { id: 1, lastName: "Snow", exchanger: "Jon", age: 35 },
-    { id: 2, lastName: "Lannister", exchanger: "Cersei", age: 42 },
-    { id: 3, lastName: "Lannister", exchanger: "Jaime", age: 45 },
-    { id: 4, lastName: "Stark", exchanger: "Arya", age: 16 },
-    { id: 5, lastName: "Targaryen", exchanger: "Daenerys", age: null },
-    { id: 6, lastName: "Melisandre", exchanger: null, age: 150 },
-    { id: 7, lastName: "Clifford", exchanger: "Ferrara", age: 44 },
-    { id: 8, lastName: "Frances", exchanger: "Rossini", age: 36 },
-    { id: 9, lastName: "Roxie", exchanger: "Harvey", age: 65 },
-  ];
-  const [openModal, setOpenModal] = useState(true);
-
+  const rows = transactions!=null?transactions:[]
+  const [openModal, setOpenModal] = useState(false);
+  const getRowId = (row) => row._id; 
   return (
     <div className="py-6">
       <div className="flex  justify-between px-3">
@@ -170,12 +207,16 @@ const Exchange = () => {
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[PAGE_SIZE]}
         checkboxSelection
+        getRowId={getRowId}
         slots={{ pagination: CustomPagination, }}
         
         sx={{
           backgroundColor: "white",
-          boxShadow: "2px",
+          boxShadow: "5px",
+          borderRadius: "0.75em",
+          border:"none"
         }}
+        className="rounded-3xl"
        
       />
       {openModal && (
@@ -188,6 +229,7 @@ const Exchange = () => {
               <h2 className="text-center font-semibold text-[20px]">
                 New Exchanges
               </h2>
+              <form onSubmit={handleSubmit} className="w-full">
               <label className="flex justify-start" htmlFor="balance">
                 Balance <span className="text-primary ml-1">*</span>
               </label>
@@ -197,6 +239,8 @@ const Exchange = () => {
                 placeholder="Balance"
                 id="balance"
                 name="balance"
+                value={formData.balance}
+                onChange={handleInputChange}
               />
               <label className="flex justify-start" htmlFor="openDate">
                 Open date
@@ -206,6 +250,8 @@ const Exchange = () => {
                 className="w-full mt-1  py-3 block border border-gray-300 rounded-xl px-2 "
                 id="openDate"
                 name="opendDate"
+                value={formData.openDate}
+                onChange={handleInputChange}
               />
               <label className="flex justify-start" htmlFor="closeDate">
                 Close date
@@ -215,6 +261,8 @@ const Exchange = () => {
                 className="w-full mt-1  py-3 block border border-gray-300 rounded-xl px-2 "
                 id="closeDate"
                 name="closeDate"
+                value={formData.closeDate}
+                onChange={handleInputChange}
               />
               <label className="flex justify-start" htmlFor="status">
                 Status
@@ -222,19 +270,22 @@ const Exchange = () => {
               <select
                 className="w-full mt-1   py-3 block border border-gray-300 rounded-xl px-2 "
                 id="status"
-                name="status"
+                  name="status"
+                  onChange={handleInputChange}
               >
                 {options.map((option) => (
-                  <option value={option}>{option}</option>
+                  <option value={option}onChange={()=>setStaus(option)} >{option}</option>
                 ))}
               </select>
               <button
                 type="submit"
-                className="py-2 bg-secondary mt-5 rounded-xl text-white font-bold"
+                className="py-2 w-full bg-secondary mt-5 rounded-xl text-white font-bold"
               >
                 Submit
-              </button>
+                </button>
+                </form>
             </div>
+            
           </div>
         </div>
       )}

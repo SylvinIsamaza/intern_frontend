@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.MuiDataGrid-selectedRowCount {
+  display: none !important;
+}
+.MuiTablePagination-actions{
+  display: none !important;
+}
