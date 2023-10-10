@@ -11,9 +11,13 @@ import { styled } from '@mui/material/styles';
 import { AiOutlineClose, AiOutlineDelete, AiOutlineMenu } from "react-icons/ai";
 import { DataGrid, gridPageCountSelector, gridPageSelector, useGridApiContext, useGridSelector } from "@mui/x-data-grid";
 import { Box, Pagination, PaginationItem, TablePagination, Typography } from "@mui/material";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { store } from "../../redux/store";
 import { loadTransaction } from "../../redux/action/transaction";
+import EditModal from "../modal/editModal";
+
+import { server } from "../server";
+import axios from "axios";
 function CustomPagination() {
 
   const apiRef = useGridApiContext();
@@ -88,7 +92,7 @@ const Exchange = ({transactions}) => {
   
   });
   const [status,setStaus]=useState("")
-
+const dispatch=useDispatch()
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -96,11 +100,21 @@ const Exchange = ({transactions}) => {
       [name]: value,
     });
   };
+  const [openEditModal, setOpenEditModal] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
    
     console.log("Form Data:", formData);
   
+  };
+  const handleEditClick = (row) => {
+    setSelectedRow(row);
+    setOpenEditModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedRow(null);
+    setOpenEditModal(false);
   };
 
 
@@ -111,17 +125,17 @@ const Exchange = ({transactions}) => {
   });
   const options = ["New", "Active", "Closed", "Canceled"];
   const columns = [
-    { field: "transactionNumber", headerName: "EXCHANGE NUMBER",flex:1},
-    { field: "exchanger", headerName: "EXCHANGER",flex:1 },
-    { field: "openDate", headerName: "OPEN DATE", flex:1},
-    { field: "closeDate", headerName: "CLOSE DATE", flex:1},
-    { field: "lmd", headerName: "LAST MODIFIED DATE", flex:1 },
-    { field: 'lastName', headerName: 'ACCOUNT BALANCE', flex:1 },
+    { field: "transactionNumber", headerName: "EXCHANGE NUMBER", flex: 1, minWidth: 220 },
+    { field: "exchanger", headerName: "EXCHANGER", flex: 1, minWidth: 200 },
+    { field: "openDate", headerName: "OPEN DATE", flex: 1, minWidth: 150 },
+    { field: "closeDate", headerName: "CLOSE DATE", flex: 1, minWidth: 150 },
+    { field: "updatedAt", headerName: "LAST MODIFIED DATE", flex: 1, minWidth: 220 },
+    { field: 'accountBalance', headerName: 'ACCOUNT BALANCE', flex: 1, minWidth: 200 },
     {
       field: "status",
       headerName: "STATUS",
-    
-      width:100,
+      width: 150,
+      
     },
     {
       field: "ACTIONS",
@@ -129,24 +143,51 @@ const Exchange = ({transactions}) => {
       description: "This column has a value getter and is not sortable.",
       sortable: false,
       width: 160,
+      minWidth: 100,
       renderCell: (params) => (
         <div className="flex gap-3 items-center">
-     <Icon icon="basil:edit-outline" className="w-8 h-8 cursor-pointer"
-            onClick={() => handleDelete(params.row.id)} // Replace with your delete logic
-          ></Icon>
-         <Icon icon="gg:more-r" 
-           
-            className="w-8 h-8 cursor-pointer"
-
-            onClick={() => handleMoreOptions(params.row.id)} // Replace with your more options logic
-          ></Icon>
+          <Icon icon="basil:edit-outline" className="w-8 h-8 cursor-pointer"
+            onClick={() => handleEditClick(params.row)}
+          />
+          <Icon icon="gg:more-r" className="w-8 h-8 cursor-pointer"
+            onClick={() => handleMoreOptions(params.row.id)}
+          />
         </div>
-      ),
+      )
     },
   ];
-  const rows = transactions!=null?transactions:[]
+  
+  
+  const rows = transactions != null ? transactions : []
+  const updatedRows = rows.length > 0 ? rows.map((row, index) => {
+    
+    async function fetch() {
+      const { data } = await axios.get(`${server}/api/v1/user/get-user/${row.transactionExchanger}`)
+      if (data) {
+    return data
+      }
+      else {
+        return ""
+      }
+    }
+    if (!row.closeDate) {
+      // If "Close Date" is missing, set it to '-'
+      return {
+        ...row,
+        id:`row_${index}`,
+        closeDate: '-',
+        exchanger:fetch()
+        
+      };
+    }
+    return { ...row,id:`row_${index}`,exchanger:fetch() };
+  }) : [];
+  console.log(updatedRows)
+
+  const [selectedRow, setSelectedRow] = useState(null);
   const [openModal, setOpenModal] = useState(false);
-  const getRowId = (row) => row._id; 
+
+
   return (
     <div className="py-6">
       <div className="flex  justify-between px-3">
@@ -159,7 +200,7 @@ const Exchange = ({transactions}) => {
           <span className="font-[550] text-white">New Exchange</span>
         </button>
       </div>
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 md:gap-3 gap-3 sm:grid-cols-1 justify-between items-center">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 md:gap-3 gap-3 grid-cols-1 justify-between items-center">
         <Card
           title="New exchanges"
           count="10"
@@ -200,25 +241,27 @@ const Exchange = ({transactions}) => {
       </div>
 
       <DataGrid
-              rows={rows}
+        rows={updatedRows}
         columns={columns}
         disableRowSelectionOnClick
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[PAGE_SIZE]}
         checkboxSelection
-        getRowId={getRowId}
+        
         slots={{ pagination: CustomPagination, }}
         
         sx={{
           backgroundColor: "white",
           boxShadow: "5px",
           borderRadius: "0.75em",
-          border:"none"
+          border: "none",
+          
         }}
         className="rounded-3xl"
        
       />
+
       {openModal && (
         <div className="flex fixed h-screen left-0 w-full top-0 z-[100] bg-[#0000002a]">
           <div className="w-full flex items-center justify-center">
@@ -288,6 +331,9 @@ const Exchange = ({transactions}) => {
             
           </div>
         </div>
+      )}
+      {openEditModal && selectedRow && (
+        <EditModal rowData={selectedRow} onClose={handleCloseModal} />
       )}
     </div>
   );
